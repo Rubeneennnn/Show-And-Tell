@@ -1,130 +1,182 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TERMINAL VOTE</title>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <title>TERMINAL DE MANDO</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
     <style>
-        body { background: #000; color: #fff; font-family: 'Rajdhani', sans-serif; margin: 0; height: 100vh; display: flex; flex-direction: column; text-align: center; overflow: hidden; }
-        .screen { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; animation: fadeIn 0.3s; }
-        .screen.active { display: flex; }
-        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        :root { 
+            --neon-blue: #00f3ff; 
+            --neon-pink: #ff0055; 
+            --neon-green: #0aff0a;
+            --bg-dark: #050505; 
+        }
         
-        .loader { width: 40px; height: 40px; border: 4px solid #333; border-top-color: #00f3ff; border-radius: 50%; animation: spin 1s infinite; margin-bottom: 20px;}
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        
+        body {
+            background-color: var(--bg-dark); 
+            color: #fff; 
+            margin: 0; 
+            height: 100vh; 
+            overflow: hidden;
+            font-family: 'Orbitron', sans-serif; 
+            display: flex; 
+            flex-direction: column;
+            background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #000 100%);
+        }
+
+        /* SISTEMA DE PANTALLAS */
+        .screen { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; padding: 20px; text-align: center; }
+        .screen.active { display: flex; opacity: 1; }
+
+        /* TEXTOS */
+        h2 { font-weight: 900; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 10px 0; font-size: 1.8rem; }
+        .sub { font-family: 'Share Tech Mono'; color: #888; font-size: 1rem; margin-top: 5px; letter-spacing: 1px; }
+
+        /* ANIMACIÓN DE CARGA */
+        .loader { width: 50px; height: 50px; border: 4px solid #333; border-top-color: var(--neon-blue); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 30px;}
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        .btn-vote { flex: 1; width: 100%; border: none; font-family: 'Rajdhani'; font-weight: 700; font-size: 2rem; text-transform: uppercase; cursor: pointer; transition: 0.1s; display: flex; flex-direction: column; justify-content: center; align-items: center;}
-        .btn-a { background: #0b1a20; color: #00f3ff; border-bottom: 2px solid #000; }
-        .btn-a:active { background: #00f3ff; color: #000; }
-        .btn-b { background: #1a0b18; color: #bc13fe; }
-        .btn-b:active { background: #bc13fe; color: #000; }
-        .btn-desc { font-size: 0.9rem; opacity: 0.7; margin-top: 5px; text-transform: none; font-weight: 400; }
+        /* BOTONES DE VOTACIÓN (GIGANTES) */
+        .btn-container { display: flex; flex-direction: column; width: 100%; height: 100%; gap: 10px; padding: 10px; }
+        
+        .vote-btn {
+            flex: 1; width: 100%; border: none; outline: none;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-family: 'Orbitron'; font-weight: 900; font-size: 2.5rem;
+            text-transform: uppercase; cursor: pointer; transition: all 0.1s;
+            position: relative; border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
 
-        .status-txt { color: #666; margin-top: 20px; font-size: 0.8rem; letter-spacing: 2px; }
+        /* ESTILO BOTÓN A */
+        .btn-a { background: linear-gradient(135deg, #0b1a20 0%, #000 100%); color: var(--neon-blue); border: 2px solid var(--neon-blue); }
+        .btn-a:active { background: var(--neon-blue); color: #000; transform: scale(0.98); }
+        
+        /* ESTILO BOTÓN B */
+        .btn-b { background: linear-gradient(135deg, #1a0b18 0%, #000 100%); color: var(--neon-pink); border: 2px solid var(--neon-pink); }
+        .btn-b:active { background: var(--neon-pink); color: #000; transform: scale(0.98); }
+
+        .btn-desc { font-size: 1rem; font-family: 'Share Tech Mono'; font-weight: 400; margin-top: 5px; opacity: 0.8; text-transform: none; }
+
+        /* PANTALLA DE ÉXITO */
+        .success-icon { font-size: 5rem; color: var(--neon-green); text-shadow: 0 0 30px var(--neon-green); animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+
     </style>
 </head>
 <body>
 
-    <div id="sc-wait" class="screen active">
+    <div id="sc-load" class="screen active">
         <div class="loader"></div>
-        <div>CONNECTED TO HOST</div>
-        <div class="status-txt">WAITING FOR ROUND...</div>
+        <div class="sub">CONECTANDO AL NÚCLEO...</div>
     </div>
 
-    <div id="sc-vote" class="screen">
-        <button class="btn-vote btn-a" onclick="vote('A')">
-            <span id="txt-a">A</span>
-            <span class="btn-desc" id="desc-a">...</span>
-        </button>
-        <button class="btn-vote btn-b" onclick="vote('B')">
-            <span id="txt-b">B</span>
-            <span class="btn-desc" id="desc-b">...</span>
-        </button>
+    <div id="sc-wait" class="screen">
+        <h2 style="color: var(--neon-blue)">EN ESPERA</h2>
+        <div class="sub">ESPERANDO AL PROFESOR...</div>
+        <div class="sub" style="margin-top: 30px; font-size: 0.8rem; border: 1px solid #333; padding: 5px;">ID DE SALA: <span id="room-disp">...</span></div>
     </div>
 
-    <div id="sc-sent" class="screen">
-        <div style="font-size: 4rem; color: #0aff0a;">✔</div>
-        <h2>VOTE SENT</h2>
-        <div class="status-txt">WAITING FOR NEXT...</div>
+    <div id="sc-vote" class="screen" style="padding: 0;">
+        <div class="btn-container">
+            <button class="vote-btn btn-a" onclick="castVote('A')">
+                <span id="txt-a">OPCIÓN A</span>
+                <span class="btn-desc" id="desc-a">Descripción...</span>
+            </button>
+            <button class="vote-btn btn-b" onclick="castVote('B')">
+                <span id="txt-b">OPCIÓN B</span>
+                <span class="btn-desc" id="desc-b">Descripción...</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="sc-done" class="screen">
+        <div class="success-icon">✔</div>
+        <h2 style="margin-top: 20px;">RECIBIDO</h2>
+        <div class="sub">ESPERA A LA SIGUIENTE RONDA</div>
     </div>
 
     <div id="sc-end" class="screen">
-        <h1 style="color: #0aff0a;">SESSION END</h1>
-        <p>Look at the main screen.</p>
+        <h2 style="color: var(--neon-green)">FIN DE SESIÓN</h2>
+        <div class="sub">MIRA LA PANTALLA PRINCIPAL</div>
     </div>
 
     <script>
-        // LEER ID DE LA URL (?room=...)
+        // 1. OBTENER ID DE LA URL
         const params = new URLSearchParams(window.location.search);
         const ROOM_ID = params.get('room');
+        document.getElementById('room-disp').innerText = ROOM_ID || "ERROR";
 
-        if(!ROOM_ID) {
-            alert("Error: No room ID detected. Scan the QR code again.");
-        } else {
-            console.log("Joining Room:", ROOM_ID);
+        let client = null;
+        let hasVoted = false;
+
+        if (ROOM_ID) {
+            // Conexión al servidor público
+            client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
             
-            // CONECTAR AL MISMO BROKER
-            const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-            const topicVote = `ruben/${ROOM_ID}/vote`;
-            const topicStatus = `ruben/${ROOM_ID}/status`;
-
-            let hasVoted = false;
-
             client.on('connect', () => {
-                console.log("Connected to Cloud");
-                client.subscribe(topicStatus); // Escuchar órdenes del Host
+                console.log("Conectado a la sala: " + ROOM_ID);
+                // Escuchar órdenes del profesor (Status)
+                client.subscribe(`adv_game/${ROOM_ID}/status`);
+                showScreen('sc-wait');
             });
 
-            client.on('message', (topic, message) => {
-                if(topic === topicStatus) {
-                    const data = JSON.parse(message.toString());
-                    const phase = data.phase;
-                    
-                    // Nueva ronda recibida
-                    hasVoted = false;
-                    updateUI(phase);
-                }
+            client.on('message', (topic, msg) => {
+                const data = JSON.parse(msg.toString());
+                const phase = data.phase;
+                
+                // Nueva ronda detectada -> Reiniciamos estado
+                hasVoted = false;
+                handlePhase(phase);
             });
+        } else {
+            alert("ERROR: Escanea el código QR de nuevo.");
+        }
 
-            function updateUI(p) {
-                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-                
-                if(p >= 5) {
-                    document.getElementById('sc-end').classList.add('active');
-                } else {
-                    // Configurar textos
-                    if(p===1) setText("READ BOOK", "Focus", "TIKTOK", "Dopamine");
-                    if(p===2) setText("SALAD", "Health", "BURGER", "Taste");
-                    if(p===3) setText("SLEEP 8H", "Recovery", "NETFLIX", "Binge");
-                    if(p===4) setText("PRIVACY", "Anonymous", "FAME", "Likes");
-                    
-                    document.getElementById('sc-vote').classList.add('active');
-                }
+        // Lógica de fases
+        function handlePhase(p) {
+            if (p >= 5) {
+                showScreen('sc-end');
+            } else {
+                // Textos personalizados por ronda (Iguales a screen.html)
+                if(p===1) setTxt("LEER LIBRO", "Atención / Foco", "TIKTOK", "Dopamina Rápida");
+                if(p===2) setTxt("ENSALADA", "Salud a largo plazo", "HAMBURGUESA", "Placer instantáneo");
+                if(p===3) setTxt("DORMIR 8H", "Recuperación", "NETFLIX", "Solo un cap más...");
+                if(p===4) setTxt("PRIVACIDAD", "Libertad anónima", "FAMA", "Validación social");
+
+                showScreen('sc-vote');
             }
+        }
 
-            function setText(a, da, b, db) {
-                document.getElementById('txt-a').innerText = a;
-                document.getElementById('desc-a').innerText = da;
-                document.getElementById('txt-b').innerText = b;
-                document.getElementById('desc-b').innerText = db;
-            }
+        function setTxt(a, da, b, db) {
+            document.getElementById('txt-a').innerText = a;
+            document.getElementById('desc-a').innerText = da;
+            document.getElementById('txt-b').innerText = b;
+            document.getElementById('desc-b').innerText = db;
+        }
 
-            window.vote = function(option) {
-                if(hasVoted) return;
-                
-                // Enviar voto
-                client.publish(topicVote, option);
-                hasVoted = true;
+        function castVote(opt) {
+            if(hasVoted) return;
+            
+            // Vibración háptica (si el móvil lo soporta)
+            if(navigator.vibrate) navigator.vibrate(50);
+            
+            // Enviar voto por internet
+            client.publish(`adv_game/${ROOM_ID}/vote`, opt);
+            hasVoted = true;
+            
+            showScreen('sc-done');
+        }
 
-                // Vibrar
-                if(navigator.vibrate) navigator.vibrate(50);
-
-                // Cambiar a pantalla "Enviado"
-                document.getElementById('sc-vote').classList.remove('active');
-                document.getElementById('sc-sent').classList.add('active');
-            }
+        // Función para cambiar de pantalla suavemente
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
         }
     </script>
 </body>
