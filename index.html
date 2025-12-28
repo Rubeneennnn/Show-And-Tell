@@ -2,249 +2,214 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>NEBULA HOST</title>
+    <title>QUANTUM HOST</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --bg-grad: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            --glass: rgba(255, 255, 255, 0.1);
-            --glass-border: rgba(255, 255, 255, 0.2);
-            --accent: #00d2ff;
-            --accent-2: #3a7bd5;
-            --text: #ffffff;
+            --bg: #050505;
+            --surface: #111111;
+            --primary: #7000ff; /* Electric Purple */
+            --secondary: #00ffcc; /* Teal */
+            --text-main: #ffffff;
+            --text-dim: #888888;
         }
 
         body {
             margin: 0; height: 100vh; overflow: hidden;
-            background: var(--bg-grad); color: var(--text);
-            font-family: 'Inter', sans-serif;
+            background-color: var(--bg); color: var(--text-main);
+            font-family: 'Space Grotesk', sans-serif;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
         }
 
-        /* FONDO ANIMADO */
-        .orb {
-            position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.6; z-index: -1;
-            animation: float 10s infinite ease-in-out;
+        /* --- UI ELEMENTS --- */
+        section { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.4s ease; }
+        section.active { display: flex; opacity: 1; }
+
+        h1 { font-size: 4.5rem; font-weight: 700; margin: 0; letter-spacing: -2px; line-height: 1; }
+        .tagline { font-family: 'Roboto Mono', monospace; color: var(--secondary); margin-top: 15px; letter-spacing: 2px; text-transform: uppercase; font-size: 0.9rem; }
+
+        /* QR CARD */
+        .card {
+            background: var(--surface); border: 1px solid #333;
+            padding: 40px; border-radius: 4px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            margin-top: 40px; position: relative;
         }
-        .orb-1 { width: 400px; height: 400px; background: #8e2de2; top: -10%; left: -10%; animation-delay: 0s; }
-        .orb-2 { width: 300px; height: 300px; background: #4a00e0; bottom: -5%; right: -5%; animation-delay: -5s; }
-        @keyframes float { 0%, 100% { transform: translate(0,0); } 50% { transform: translate(30px, -30px); } }
+        .card::after { content: ''; position: absolute; top: -1px; left: -1px; right: -1px; bottom: -1px; border-radius: 4px; padding: 1px; background: linear-gradient(45deg, var(--primary), transparent, var(--secondary)); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
 
-        /* CONTENEDORES */
-        section { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: all 0.5s ease; }
-        section.active { display: flex; opacity: 1; transform: scale(1); }
-
-        /* TARJETAS DE CRISTAL */
-        .glass-card {
-            background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border); border-radius: 24px;
-            padding: 40px; text-align: center;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-            margin-top: 30px;
+        /* PLAYER COUNTER */
+        .player-pill {
+            margin-top: 30px; background: #1a1a1a; padding: 10px 20px; border-radius: 50px;
+            display: flex; align-items: center; gap: 10px; border: 1px solid #333;
         }
+        .dot { width: 8px; height: 8px; background: var(--secondary); border-radius: 50%; box-shadow: 0 0 10px var(--secondary); }
 
-        /* TEXTOS */
-        h1 { font-size: 4rem; font-weight: 800; margin: 0; letter-spacing: -2px; text-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .sub { font-size: 1.2rem; font-weight: 300; opacity: 0.8; margin-top: 10px; letter-spacing: 1px; }
+        /* GAME BARS */
+        .game-layout { width: 80%; max-width: 1000px; margin-top: 60px; }
+        .vs-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
+        .opt-label { font-size: 2.5rem; font-weight: 700; }
+        .opt-a { color: var(--secondary); }
+        .opt-b { color: var(--primary); }
+
+        .progress-track { width: 100%; height: 60px; background: #1a1a1a; position: relative; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--secondary); width: 50%; position: absolute; left: 0; top: 0; transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+        .divider { position: absolute; left: 50%; top: 0; height: 100%; width: 2px; background: #000; z-index: 10; }
         
-        /* JUEGO */
-        .battle-arena { width: 80%; max-width: 900px; margin-top: 40px; }
-        
-        .bar-container {
-            width: 100%; height: 80px; background: rgba(0,0,0,0.3); border-radius: 40px;
-            overflow: hidden; position: relative; margin: 20px 0;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .bar-fill {
-            height: 100%; width: 50%;
-            background: linear-gradient(90deg, #00c6ff, #0072ff);
-            position: absolute; left: 0; top:0;
-            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .vs-badge {
-            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-            background: #fff; color: #000; font-weight: 800; padding: 10px 20px;
-            border-radius: 20px; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
+        .stats-text { display: flex; justify-content: space-between; margin-top: 15px; font-family: 'Roboto Mono'; color: var(--text-dim); }
 
-        .labels { display: flex; justify-content: space-between; font-size: 2.5rem; font-weight: 700; text-transform: uppercase; }
-        .lbl-a { color: #00c6ff; text-shadow: 0 0 20px rgba(0,198,255,0.4); }
-        .lbl-b { color: #ff0099; text-shadow: 0 0 20px rgba(255,0,153,0.4); }
+        /* FINAL RESULTS */
+        .stat-big { font-size: 6rem; font-weight: 700; color: #fff; margin: 0; }
+        .stat-label { font-family: 'Roboto Mono'; color: var(--primary); letter-spacing: 1px; }
 
-        /* ESTADISTICAS */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 40px; }
-        .stat-num { font-size: 5rem; font-weight: 800; margin: 0; line-height: 1; background: linear-gradient(to bottom, #fff, #aaa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-        /* BOTON FLOTANTE */
-        .fab {
+        /* BUTTON */
+        .btn-start {
             position: fixed; bottom: 40px; right: 40px;
-            background: #fff; color: #000;
-            padding: 15px 35px; border-radius: 50px;
-            font-weight: 700; font-size: 1rem; cursor: pointer;
-            border: none; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-            transition: transform 0.2s; z-index: 100;
+            background: #fff; color: #000; border: none;
+            padding: 20px 40px; font-family: 'Roboto Mono'; font-weight: 700;
+            cursor: pointer; transition: 0.2s;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
         }
-        .fab:hover { transform: translateY(-5px); }
+        .btn-start:hover { background: var(--secondary); }
 
-        /* QR COLOR FIX */
-        #qr-area img { display: block; } /* Quita espacios extra */
-
+        #qr-area img { display: block; border: 10px solid #fff; }
     </style>
 </head>
 <body>
 
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-
     <section id="view-0" class="active">
-        <h1>NEBULA</h1>
-        <div class="sub">SCAN TO JOIN SESSION</div>
+        <h1>QUANTUM LAB</h1>
+        <div class="tagline">HUMAN BEHAVIOR ANALYSIS</div>
         
-        <div class="glass-card">
+        <div class="card">
             <div id="qr-area"></div>
         </div>
+        <div style="margin-top: 10px; font-family: 'Roboto Mono'; font-size: 0.7rem; color: #444;" id="url-debug">...</div>
 
-        <div style="margin-top: 30px; display: flex; align-items: center; gap: 10px;">
-            <div style="width: 10px; height: 10px; background: #00ff88; border-radius: 50%; box-shadow: 0 0 10px #00ff88;"></div>
-            <div class="sub" style="margin:0; font-weight: 600; font-size: 1.1rem;">
-                PLAYERS READY: <span id="player-count">0</span>
-            </div>
+        <div class="player-pill">
+            <div class="dot"></div>
+            <span style="font-family: 'Roboto Mono'; font-size: 0.9rem;">SUBJECTS CONNECTED: <span id="player-count" style="color:#fff; font-weight:bold;">0</span></span>
         </div>
-        <div class="sub" style="font-size: 0.8rem; margin-top: 5px; opacity: 0.5;" id="url-debug">...</div>
     </section>
 
     <section id="view-game">
-        <div class="sub">ROUND <span id="round-idx">01</span></div>
-        <h1 id="round-title" style="font-size: 3.5rem;">LOADING...</h1>
+        <div class="tagline">DATA STREAM // SEQUENCE <span id="round-idx">01</span></div>
+        <h1 id="round-title" style="font-size: 4rem; margin-top: 20px;">LOADING</h1>
 
-        <div class="battle-arena">
-            <div class="labels">
-                <span class="lbl-a" id="lbl-a">A</span>
-                <span class="lbl-b" id="lbl-b">B</span>
+        <div class="game-layout">
+            <div class="vs-row">
+                <div class="opt-label opt-a" id="lbl-a">A</div>
+                <div class="opt-label opt-b" id="lbl-b">B</div>
             </div>
             
-            <div class="bar-container">
-                <div class="bar-fill" id="main-bar"></div>
-                <div class="vs-badge">VS</div>
+            <div class="progress-track">
+                <div class="progress-fill" id="main-bar"></div>
+                <div class="divider"></div>
             </div>
 
-            <div style="display: flex; justify-content: space-between; font-weight: 600; opacity: 0.8;">
-                <span id="pct-a">50%</span>
-                <span>TOTAL VOTES: <span id="vote-total">0</span></span>
-                <span id="pct-b">50%</span>
+            <div class="stats-text">
+                <div id="pct-a">50%</div>
+                <div>TOTAL INPUTS: <span id="vote-total" style="color: #fff;">0</span></div>
+                <div id="pct-b">50%</div>
             </div>
         </div>
     </section>
 
     <section id="view-stats">
-        <h1>SESSION REPORT</h1>
-        <div class="stats-grid">
-            <div class="glass-card" style="margin:0;">
-                <div class="stat-num" id="stat-total">0</div>
-                <div class="sub">TOTAL INTERACTIONS</div>
+        <h1>ANALYSIS COMPLETE</h1>
+        <div style="display: flex; gap: 80px; margin-top: 60px; text-align: center;">
+            <div>
+                <div class="stat-big" id="stat-total">0</div>
+                <div class="stat-label">TOTAL DECISIONS</div>
             </div>
-            <div class="glass-card" style="margin:0;">
-                <div class="stat-num" style="font-size: 2.5rem;" id="stat-winner">-</div>
-                <div class="sub">DOMINANT PROFILE</div>
+            <div>
+                <div class="stat-big" id="stat-winner" style="font-size: 3rem; line-height: 2; color: var(--secondary)">-</div>
+                <div class="stat-label">DOMINANT TRAIT</div>
             </div>
         </div>
     </section>
 
-    <button class="fab" onclick="nextPhase()" id="btn-next">START SESSION</button>
+    <button class="btn-start" onclick="nextPhase()" id="btn-next">INITIALIZE TEST</button>
 
     <script>
-        // --- LÓGICA DE URL ---
-        const ROOM_ID = "NB_" + Math.floor(Math.random() * 100000);
+        // --- SETUP ---
+        const ROOM_ID = "QL_" + Math.floor(Math.random() * 9999);
         let baseUrl = window.location.href.replace('index.html', '');
         if(!baseUrl.endsWith('/')) baseUrl += '/';
         const mobileUrl = baseUrl + "mobile.html?room=" + ROOM_ID;
         
-        document.getElementById('url-debug').innerText = mobileUrl; // Debug visual
-        
-        // QR (Blanco y negro limpio)
-        new QRCode(document.getElementById("qr-area"), { 
-            text: mobileUrl, 
-            width: 200, height: 200, 
-            colorDark: "#000000", colorLight: "#ffffff", 
-            correctLevel: QRCode.CorrectLevel.H 
-        });
+        document.getElementById('url-debug').innerText = mobileUrl;
+        new QRCode(document.getElementById("qr-area"), { text: mobileUrl, width: 200, height: 200 });
 
-        // --- CONEXIÓN & CONTADOR JUGADORES ---
         const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-        const topics = { 
-            vote: `nb_sys/${ROOM_ID}/vote`, 
-            join: `nb_sys/${ROOM_ID}/join`,   // Canal para contar gente
-            status: `nb_sys/${ROOM_ID}/status` 
-        };
+        const topics = { vote: `ql_sys/${ROOM_ID}/vote`, join: `ql_sys/${ROOM_ID}/join`, status: `ql_sys/${ROOM_ID}/status` };
 
+        // --- VARIABLES DE ESTADO ---
         let currentPhase = 0;
         let votes = { A: 0, B: 0 };
-        let allVotes = {};
-        let connectedPlayers = new Set(); // Para no contar repetidos (si mandan ID)
+        let allVotes = {}; // Aquí guardaremos todo
+        let connectedPlayers = new Set();
 
         client.on('connect', () => { 
-            console.log("HOST ONLINE", ROOM_ID); 
-            client.subscribe(topics.vote);
+            client.subscribe(topics.vote); 
             client.subscribe(topics.join);
         });
 
         client.on('message', (topic, msg) => {
-            const val = msg.toString();
-
-            // 1. ALGUIEN SE UNE
             if (topic === topics.join) {
-                // val es el ID único del móvil
-                connectedPlayers.add(val);
+                connectedPlayers.add(msg.toString());
                 document.getElementById('player-count').innerText = connectedPlayers.size;
-                // Efecto visual simple
-                const countEl = document.getElementById('player-count');
-                countEl.style.transform = "scale(1.5)";
-                setTimeout(() => countEl.style.transform = "scale(1)", 200);
             }
-
-            // 2. ALGUIEN VOTA
             if (topic === topics.vote) {
+                const val = msg.toString();
                 if(val === 'A') votes.A++;
                 if(val === 'B') votes.B++;
                 updateDisplay();
             }
         });
 
-        // --- FASES DEL JUEGO ---
+        // --- CORRECCIÓN DEL BUG ---
         function nextPhase() {
+            // 1. ANTES DE CAMBIAR DE FASE, GUARDAMOS LOS DATOS ACTUALES
+            if (currentPhase > 0 && currentPhase <= 4) {
+                allVotes[currentPhase] = {...votes};
+                console.log("Datos guardados fase " + currentPhase, allVotes[currentPhase]);
+            }
+
+            // 2. AHORA SÍ CAMBIAMOS DE FASE
             currentPhase++;
-            if(currentPhase > 1) allVotes[currentPhase-1] = {...votes};
-            votes = { A: 0, B: 0 };
-            
-            // Avisar a los móviles
+            votes = { A: 0, B: 0 }; // Reseteamos contadores para la nueva ronda
+
+            // 3. ACTUALIZAMOS LA VISTA
             client.publish(topics.status, JSON.stringify({ phase: currentPhase }));
             
-            updateUI();
-        }
-
-        function updateUI() {
             document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
             const btn = document.getElementById('btn-next');
 
             if (currentPhase <= 4) {
+                // ESTAMOS EN JUEGO
                 document.getElementById('view-game').classList.add('active');
                 setupRound(currentPhase);
-                btn.innerText = (currentPhase === 4) ? "FINISH REPORT" : "NEXT ROUND →";
+                btn.innerText = (currentPhase === 4) ? "CALCULATE RESULTS" : "NEXT SEQUENCE >>";
             } else {
+                // ESTAMOS EN RESULTADOS
                 document.getElementById('view-stats').classList.add('active');
                 btn.style.display = 'none';
-                calcStats();
+                showResults();
             }
         }
 
         function setupRound(r) {
             const data = [
-                { t: "ATTENTION", a: "READING", b: "SCROLLING" },
-                { t: "CHOICES", a: "SALAD", b: "BURGER" },
-                { t: "RECOVERY", a: "SLEEP 8H", b: "NETFLIX" },
+                { t: "FOCUS", a: "READING", b: "SCROLLING" },
+                { t: "DIET", a: "SALAD", b: "BURGER" },
+                { t: "REST", a: "SLEEP 8H", b: "NETFLIX" },
                 { t: "SOCIAL", a: "PRIVACY", b: "FAME" }
             ];
             const d = data[r-1];
@@ -266,14 +231,23 @@
             document.getElementById('pct-b').innerText = Math.round(100 - pctA) + "%";
         }
 
-        function calcStats() {
-            allVotes[4] = {...votes};
-            let total = 0; let dopa = 0;
-            for(let r=1; r<=4; r++) { if(allVotes[r]) { total += (allVotes[r].A + allVotes[r].B); dopa += allVotes[r].B; } }
+        function showResults() {
+            // Ya no guardamos nada aquí, porque se guardó al inicio de nextPhase()
+            let totalInputs = 0; 
+            let dopamineScore = 0;
             
-            document.getElementById('stat-total').innerText = total;
-            const ratio = total > 0 ? (dopa / total) : 0;
-            const winner = ratio > 0.5 ? "INSTANT GRATIFICATION" : "SELF CONTROL";
+            // Sumamos las 4 rondas
+            for(let r=1; r<=4; r++) { 
+                if(allVotes[r]) { 
+                    totalInputs += (allVotes[r].A + allVotes[r].B); 
+                    dopamineScore += allVotes[r].B; 
+                } 
+            }
+            
+            document.getElementById('stat-total').innerText = totalInputs;
+            
+            const ratio = totalInputs > 0 ? (dopamineScore / totalInputs) : 0;
+            const winner = ratio > 0.5 ? "INSTANT GRATIFICATION" : "DELAYED GRATIFICATION";
             document.getElementById('stat-winner').innerText = winner;
         }
     </script>
