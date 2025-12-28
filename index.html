@@ -2,162 +2,168 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>NEBULA HOST</title>
+    <title>FINAL HOST</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;600;700&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --bg-grad: linear-gradient(135deg, #1a0b2e, #2d1b4e, #0c0c1d);
-            --neon-blue: #00f2ff;
-            --neon-pink: #ff0055;
-            --glass: rgba(255, 255, 255, 0.05);
-            --border: rgba(255, 255, 255, 0.15);
+            /* COLORES DE ALTO CONTRASTE */
+            --bg-color: #050505;
+            --grid-color: rgba(255, 255, 255, 0.05);
+            
+            --color-a: #00e5ff; /* Cyan Eléctrico (Opción A) */
+            --color-b: #ff003c; /* Rojo Neón (Opción B - Dopamina) */
         }
 
         body {
             margin: 0; height: 100vh; overflow: hidden;
-            background: var(--bg-grad); color: #fff;
-            font-family: 'Exo 2', sans-serif;
+            background-color: var(--bg-color); color: #fff;
+            font-family: 'Chakra Petch', sans-serif;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
+            
+            /* FONDO DE REJILLA PARA MEJOR VISIBILIDAD */
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
         }
 
-        /* ORBES DE FONDO */
-        .orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.5; z-index: -1; animation: float 12s infinite ease-in-out; }
-        .orb-1 { width: 500px; height: 500px; background: #5500ff; top: -10%; left: -10%; }
-        .orb-2 { width: 400px; height: 400px; background: #ff0055; bottom: -10%; right: -10%; animation-delay: -5s; }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(40px); } }
-
-        /* UI */
-        section { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: all 0.5s ease; }
-        section.active { display: flex; opacity: 1; transform: scale(1); }
-
-        h1 { font-size: 5rem; font-weight: 900; margin: 0; text-shadow: 0 0 30px rgba(0,242,255,0.3); letter-spacing: 2px; }
-        .sub-text { font-size: 1.2rem; color: #aaa; margin-top: 10px; font-weight: 300; letter-spacing: 1px; text-transform: uppercase; }
-
-        /* QR BOX */
-        .glass-panel {
-            background: var(--glass); backdrop-filter: blur(20px);
-            border: 1px solid var(--border); padding: 40px; border-radius: 30px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.4); margin-top: 30px;
+        /* SOMBRA VINETEADA PARA DAR PROFUNDIDAD */
+        body::after {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 40%, #000 100%);
+            pointer-events: none; z-index: -1;
         }
 
-        /* BARRA DE DUELO (NUEVO DISEÑO) */
-        .duel-container { width: 85%; max-width: 1100px; margin-top: 50px; }
+        /* ELEMENTOS UI */
+        section { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.5s ease; }
+        section.active { display: flex; opacity: 1; }
+
+        h1 { font-size: 4rem; margin: 0; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 0 20px rgba(255,255,255,0.2); }
+        .sub { color: #888; font-size: 1.2rem; margin-top: 10px; letter-spacing: 1px; }
+
+        /* QR PANEL */
+        .panel {
+            background: rgba(20, 20, 20, 0.8); border: 1px solid #333;
+            padding: 30px; border-radius: 10px; margin-top: 30px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        /* BARRAS DE JUEGO */
+        .game-container { width: 90%; max-width: 1200px; margin-top: 50px; }
         
+        .labels { display: flex; justify-content: space-between; font-size: 3rem; font-weight: 700; margin-bottom: 20px; text-transform: uppercase;}
+        .lbl-a { color: var(--color-a); text-shadow: 0 0 25px rgba(0, 229, 255, 0.4); }
+        .lbl-b { color: var(--color-b); text-shadow: 0 0 25px rgba(255, 0, 60, 0.4); }
+
         .bar-track {
-            width: 100%; height: 80px; background: rgba(0,0,0,0.5); border-radius: 40px;
-            overflow: hidden; position: relative; display: flex;
-            border: 2px solid rgba(255,255,255,0.1);
+            width: 100%; height: 100px; background: #111; border: 2px solid #333;
+            display: flex; position: relative; border-radius: 5px; overflow: hidden;
         }
-
-        .bar-part { height: 100%; transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1); position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden;}
         
-        /* BARRA IZQUIERDA (AZUL) */
-        #bar-a { width: 50%; background: linear-gradient(90deg, #0055ff, var(--neon-blue)); box-shadow: 0 0 30px rgba(0, 242, 255, 0.2); }
-        /* BARRA DERECHA (ROSA) */
-        #bar-b { width: 50%; background: linear-gradient(90deg, var(--neon-pink), #8800ff); box-shadow: 0 0 30px rgba(255, 0, 85, 0.2); }
+        .bar-fill { height: 100%; transition: width 0.5s ease-out; }
+        .fill-a { background: var(--color-a); width: 50%; box-shadow: inset -5px 0 20px rgba(0,0,0,0.3); }
+        .fill-b { background: var(--color-b); width: 50%; box-shadow: inset 5px 0 20px rgba(0,0,0,0.3); }
 
-        .vs-badge {
+        .vs-center {
             position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-            background: #fff; color: #000; font-weight: 900; padding: 10px 15px;
-            border-radius: 50%; z-index: 10; box-shadow: 0 0 20px rgba(255,255,255,0.5);
-            font-size: 1.2rem; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+            background: #000; padding: 5px 15px; border: 1px solid #555; font-weight: bold; z-index: 10;
         }
 
-        .labels-row { display: flex; justify-content: space-between; font-size: 3rem; font-weight: 900; text-transform: uppercase; margin-bottom: 15px; }
-        .txt-a { color: var(--neon-blue); text-shadow: 0 0 20px var(--neon-blue); }
-        .txt-b { color: var(--neon-pink); text-shadow: 0 0 20px var(--neon-pink); }
+        .stats-detail { display: flex; justify-content: space-between; font-size: 1.5rem; margin-top: 15px; font-weight: 600; opacity: 0.9; }
 
-        .stats-row { display: flex; justify-content: space-between; font-size: 1.5rem; font-weight: 700; margin-top: 10px; color: #fff; }
-
-        /* ESTADÍSTICAS FINALES */
-        .stat-card { background: var(--glass); padding: 30px 50px; border-radius: 20px; border: 1px solid var(--border); text-align: center; }
-        .stat-big { font-size: 5rem; font-weight: 900; line-height: 1; margin-bottom: 10px; }
-
-        /* BOTÓN */
-        .fab {
-            position: fixed; bottom: 40px; right: 40px;
-            background: #fff; color: #000; border: none;
-            padding: 15px 40px; border-radius: 50px; font-weight: 900; font-size: 1.1rem;
-            cursor: pointer; box-shadow: 0 0 20px rgba(255,255,255,0.3); transition: transform 0.2s;
+        /* RESULTADOS FINALES */
+        .winner-box {
+            border: 2px solid #fff; padding: 40px; margin-top: 30px; text-align: center;
+            background: rgba(0,0,0,0.8); width: 60%;
         }
-        .fab:hover { transform: scale(1.05); }
+        .score-row { display: flex; gap: 40px; margin-top: 20px; justify-content: center; color: #aaa; font-size: 1.2rem; }
+
+        /* BOTON */
+        .btn-action {
+            position: fixed; bottom: 30px; right: 30px;
+            background: #fff; color: #000; border: none; padding: 15px 30px;
+            font-family: 'Chakra Petch'; font-weight: 700; font-size: 1.2rem;
+            cursor: pointer; text-transform: uppercase; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+        .btn-action:hover { background: var(--color-a); }
+
     </style>
 </head>
 <body>
 
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-
     <section id="view-0" class="active">
-        <h1>NEBULA OS</h1>
-        <div class="sub-text">SYSTEM READY // WAITING FOR PLAYERS</div>
+        <h1>SYSTEM LINK</h1>
+        <div class="sub">SCAN TO CONNECT</div>
         
-        <div class="glass-panel">
+        <div class="panel">
             <div id="qr-area"></div>
         </div>
-        <div class="sub-text" style="margin-top:20px; color: var(--neon-blue);">
-            CONNECTED: <span id="player-count" style="font-weight:bold; font-size:1.5rem; color:#fff;">0</span>
+        
+        <div style="margin-top: 30px; font-size: 1.5rem;">
+            PLAYERS: <span id="player-count" style="color: var(--color-a); font-weight: bold;">0</span>
         </div>
     </section>
 
     <section id="view-game">
-        <div class="sub-text">SEQUENCE <span id="round-idx">01</span></div>
-        <h1 id="round-title" style="margin-bottom: 30px;">LOADING...</h1>
+        <div class="sub">ROUND <span id="round-idx">01</span></div>
+        <h1 id="round-title" style="font-size: 3.5rem; margin-bottom: 20px;">LOADING...</h1>
 
-        <div class="duel-container">
-            <div class="labels-row">
-                <span class="txt-a" id="lbl-a">OPTION A</span>
-                <span class="txt-b" id="lbl-b">OPTION B</span>
+        <div class="game-container">
+            <div class="labels">
+                <span class="lbl-a" id="lbl-a">OPTION A</span>
+                <span class="lbl-b" id="lbl-b">OPTION B</span>
             </div>
             
             <div class="bar-track">
-                <div class="bar-part" id="bar-a"></div>
-                <div class="vs-badge">VS</div>
-                <div class="bar-part" id="bar-b"></div>
+                <div class="bar-fill fill-a" id="bar-a"></div>
+                <div class="vs-center">VS</div>
+                <div class="bar-fill fill-b" id="bar-b"></div>
             </div>
 
-            <div class="stats-row">
-                <span id="pct-a">50%</span>
-                <span style="font-size: 1rem; opacity: 0.7;">TOTAL VOTES: <span id="vote-total">0</span></span>
-                <span id="pct-b">50%</span>
+            <div class="stats-detail">
+                <span style="color: var(--color-a)" id="pct-a">50%</span>
+                <span style="font-size: 1rem; color: #555;">TOTAL: <span id="vote-total">0</span></span>
+                <span style="color: var(--color-b)" id="pct-b">50%</span>
             </div>
         </div>
     </section>
 
     <section id="view-stats">
-        <h1 style="font-size: 3.5rem; margin-bottom: 50px;">ANALYSIS COMPLETE</h1>
-        <div style="display: flex; gap: 50px;">
-            <div class="stat-card">
-                <div class="stat-big" id="stat-total">0</div>
-                <div class="sub-text">TOTAL DECISIONS</div>
+        <h1>DIAGNOSTIC RESULT</h1>
+        
+        <div class="winner-box" id="winner-container">
+            <div class="sub">DOMINANT BEHAVIOR</div>
+            <div style="font-size: 4rem; font-weight: 700; margin: 20px 0; line-height: 1.1;" id="stat-winner">
+                CALCULATING...
             </div>
-            <div class="stat-card">
-                <div class="stat-big" id="stat-winner" style="font-size: 2.5rem; color: var(--neon-pink)">-</div>
-                <div class="sub-text">DOMINANT PROFILE</div>
-            </div>
+        </div>
+
+        <div class="score-row">
+            <span style="color: var(--color-a)">DISCIPLINE: <b id="score-a">0</b></span>
+            <span>|</span>
+            <span style="color: var(--color-b)">DOPAMINE: <b id="score-b">0</b></span>
         </div>
     </section>
 
-    <button class="fab" onclick="nextPhase()" id="btn-next">START SESSION</button>
+    <button class="btn-action" onclick="nextPhase()" id="btn-next">START GAME</button>
 
     <script>
-        // CONFIGURACIÓN
-        const ROOM_ID = "NB_" + Math.floor(Math.random() * 9999);
+        const ROOM_ID = "SYS_" + Math.floor(Math.random() * 10000);
         let baseUrl = window.location.href.replace('index.html', '');
         if(!baseUrl.endsWith('/')) baseUrl += '/';
         const mobileUrl = baseUrl + "mobile.html?room=" + ROOM_ID;
         
-        new QRCode(document.getElementById("qr-area"), { text: mobileUrl, width: 220, height: 220, colorDark: "#000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H });
+        new QRCode(document.getElementById("qr-area"), { text: mobileUrl, width: 220, height: 220, colorDark: "#fff", colorLight: "#00000000" });
 
         const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-        const topics = { vote: `nb2_sys/${ROOM_ID}/vote`, join: `nb2_sys/${ROOM_ID}/join`, status: `nb2_sys/${ROOM_ID}/status` };
+        const topics = { vote: `sys3/${ROOM_ID}/vote`, join: `sys3/${ROOM_ID}/join`, status: `sys3/${ROOM_ID}/status` };
 
         let currentPhase = 0;
         let votes = { A: 0, B: 0 };
-        let allVotes = {};
+        let allVotes = {}; 
         let connectedPlayers = new Set();
 
         client.on('connect', () => { 
@@ -179,15 +185,16 @@
         });
 
         function nextPhase() {
-            // Guardar datos ANTES de resetear
+            // Guardar datos de la ronda anterior ANTES de avanzar
             if (currentPhase > 0 && currentPhase <= 4) {
-                allVotes[currentPhase] = {...votes};
+                allVotes[currentPhase] = { A: votes.A, B: votes.B };
             }
 
             currentPhase++;
-            votes = { A: 0, B: 0 }; // Reset
+            votes = { A: 0, B: 0 }; // Reseteo
             
             client.publish(topics.status, JSON.stringify({ phase: currentPhase }));
+            updateDisplay(); // Resetea barras visuales a 50/50
             
             document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
             const btn = document.getElementById('btn-next');
@@ -195,7 +202,7 @@
             if (currentPhase <= 4) {
                 document.getElementById('view-game').classList.add('active');
                 setupRound(currentPhase);
-                btn.innerText = (currentPhase === 4) ? "FINISH" : "NEXT ROUND >>";
+                btn.innerText = (currentPhase === 4) ? "FINISH & CALC" : "NEXT ROUND >>";
             } else {
                 document.getElementById('view-stats').classList.add('active');
                 btn.style.display = 'none';
@@ -206,8 +213,8 @@
         function setupRound(r) {
             const data = [
                 { t: "ATTENTION", a: "READING", b: "SCROLLING" },
-                { t: "CHOICES", a: "SALAD", b: "BURGER" },
-                { t: "DISCIPLINE", a: "SLEEP 8H", b: "NETFLIX" },
+                { t: "FOOD", a: "SALAD", b: "BURGER" },
+                { t: "HABITS", a: "SLEEP 8H", b: "NETFLIX" },
                 { t: "VALUES", a: "PRIVACY", b: "FAME" }
             ];
             const d = data[r-1];
@@ -215,7 +222,6 @@
             document.getElementById('round-title').innerText = d.t;
             document.getElementById('lbl-a').innerText = d.a;
             document.getElementById('lbl-b').innerText = d.b;
-            updateDisplay();
         }
 
         function updateDisplay() {
@@ -230,7 +236,6 @@
                 pctB = (votes.B / total) * 100;
             }
             
-            // AQUÍ ESTÁ EL CAMBIO CLAVE: Asignamos ancho a AMBAS barras
             document.getElementById('bar-a').style.width = pctA + "%";
             document.getElementById('bar-b').style.width = pctB + "%";
 
@@ -239,23 +244,42 @@
         }
 
         function showResults() {
-            let totalInputs = 0; 
-            let dopamineScore = 0;
-            for(let r=1; r<=4; r++) { 
-                if(allVotes[r]) { 
-                    totalInputs += (allVotes[r].A + allVotes[r].B); 
-                    dopamineScore += allVotes[r].B; 
-                } 
+            let totalA = 0;
+            let totalB = 0;
+
+            // Suma estricta de todas las rondas guardadas
+            for (let r = 1; r <= 4; r++) {
+                if (allVotes[r]) {
+                    totalA += allVotes[r].A;
+                    totalB += allVotes[r].B;
+                }
             }
-            document.getElementById('stat-total').innerText = totalInputs;
-            const ratio = totalInputs > 0 ? (dopamineScore / totalInputs) : 0;
-            const winner = ratio > 0.5 ? "INSTANT GRATIFICATION" : "DELAYED GRATIFICATION";
-            const color = ratio > 0.5 ? "var(--neon-pink)" : "var(--neon-blue)";
-            
-            const wEl = document.getElementById('stat-winner');
-            wEl.innerText = winner;
-            wEl.style.color = color;
-            wEl.style.textShadow = `0 0 30px ${color}`;
+
+            // Mostrar puntuación numérica (Debug para ti y claridad para ellos)
+            document.getElementById('score-a').innerText = totalA;
+            document.getElementById('score-b').innerText = totalB;
+
+            const wContainer = document.getElementById('winner-container');
+            const wText = document.getElementById('stat-winner');
+
+            if (totalB > totalA) {
+                // GANA DOPAMINA
+                wText.innerText = "INSTANT GRATIFICATION";
+                wText.style.color = "var(--color-b)"; // Rojo
+                wContainer.style.borderColor = "var(--color-b)";
+                wContainer.style.boxShadow = "0 0 50px rgba(255, 0, 60, 0.3)";
+            } else if (totalA > totalB) {
+                // GANA DISCIPLINA
+                wText.innerText = "DELAYED GRATIFICATION";
+                wText.style.color = "var(--color-a)"; // Azul
+                wContainer.style.borderColor = "var(--color-a)";
+                wContainer.style.boxShadow = "0 0 50px rgba(0, 229, 255, 0.3)";
+            } else {
+                // EMPATE
+                wText.innerText = "PERFECT BALANCE";
+                wText.style.color = "#fff";
+                wContainer.style.borderColor = "#fff";
+            }
         }
     </script>
 </body>
