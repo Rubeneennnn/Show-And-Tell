@@ -3,63 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UPLINK</title>
+    <title>CONTROLLER</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --accent: #00f0ff; --accent-sec: #ff0055; --bg: #030305; }
+        :root {
+            --bg-grad: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            --glass: rgba(255, 255, 255, 0.1);
+            --accent: #00d2ff;
+            --accent-2: #ff0099;
+        }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
         
         body {
-            background-color: var(--bg); color: #fff; margin: 0; height: 100vh;
-            font-family: 'Rajdhani', sans-serif; display: flex; flex-direction: column;
-            overflow: hidden;
+            background: var(--bg-grad); color: #fff; margin: 0; height: 100vh;
+            font-family: 'Inter', sans-serif; display: flex; flex-direction: column; overflow: hidden;
         }
 
-        .screen { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 20px; transition: opacity 0.3s; opacity: 0; }
+        /* PANTALLAS */
+        .screen { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; transition: opacity 0.3s; opacity: 0; }
         .screen.active { display: flex; opacity: 1; }
 
-        .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #666; letter-spacing: 1px; }
-        .title { font-size: 2rem; font-weight: 700; text-transform: uppercase; margin-bottom: 10px; }
-
-        /* LOADER */
-        .ring { width: 40px; height: 40px; border: 2px solid #333; border-top-color: var(--accent); border-radius: 50%; animation: spin 1s infinite; margin-bottom: 20px;}
+        .loader { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #fff; border-radius: 50%; animation: spin 1s infinite; margin-bottom: 20px;}
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        /* BUTTONS */
-        .btn-grid { display: grid; grid-template-rows: 1fr 1fr; width: 100%; height: 100%; gap: 15px; }
+        /* TEXTOS */
+        h2 { font-weight: 800; text-transform: uppercase; margin: 0; font-size: 1.5rem; letter-spacing: 1px; }
+        p { font-size: 0.9rem; opacity: 0.7; margin-top: 5px; }
+
+        /* BOTONES */
+        .btn-grid { display: flex; flex-direction: column; width: 100%; height: 100%; gap: 15px; margin-top: 20px; }
         
         .vote-btn {
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-            color: #fff; font-size: 2rem; font-family: 'Rajdhani'; font-weight: 700;
-            border-radius: 15px; cursor: pointer; transition: 0.1s;
-            display: flex; align-items: center; justify-content: center;
+            flex: 1; border: none; outline: none; border-radius: 20px;
+            font-size: 2rem; font-weight: 700; color: #fff;
+            transition: transform 0.1s; cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative; overflow: hidden;
         }
-        
-        .btn-a { border-color: var(--accent); color: var(--accent); }
-        .btn-a:active { background: var(--accent); color: #000; }
-        
-        .btn-b { border-color: var(--accent-sec); color: var(--accent-sec); }
-        .btn-b:active { background: var(--accent-sec); color: #000; }
+        .vote-btn:active { transform: scale(0.96); }
 
-        .success-circle { width: 80px; height: 80px; border-radius: 50%; border: 4px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 3rem; color: var(--accent); margin-bottom: 20px; }
+        .btn-a { background: linear-gradient(135deg, #00c6ff, #0072ff); }
+        .btn-b { background: linear-gradient(135deg, #ff0099, #493240); }
+
+        .status-dot { width: 8px; height: 8px; background: #00ff88; border-radius: 50%; display: inline-block; margin-right: 5px; }
 
     </style>
 </head>
 <body>
 
     <div id="sc-load" class="screen active">
-        <div class="ring"></div>
-        <div class="mono">ESTABLISHING UPLINK...</div>
+        <div class="loader"></div>
+        <p>JOINING NETWORK...</p>
     </div>
 
     <div id="sc-wait" class="screen">
-        <div class="title">STANDBY</div>
-        <div class="mono">WAITING FOR HOST</div>
-        <div class="mono" style="margin-top: 20px; border: 1px solid #333; padding: 5px;">ID: <span id="room-disp">...</span></div>
+        <div style="background: var(--glass); padding: 30px; border-radius: 20px;">
+            <div class="status-dot"></div> CONNECTED
+            <h2 style="margin-top: 15px;">WAITING FOR HOST</h2>
+            <p>Look at the main screen</p>
+        </div>
     </div>
 
-    <div id="sc-vote" class="screen" style="padding: 15px;">
+    <div id="sc-vote" class="screen">
+        <div style="width: 100%; text-align: left; padding-left: 5px;">
+            <p style="margin:0; font-weight: 700; color: #fff;">CHOOSE WISELY</p>
+        </div>
         <div class="btn-grid">
             <button class="vote-btn btn-a" onclick="vote('A')">OPTION A</button>
             <button class="vote-btn btn-b" onclick="vote('B')">OPTION B</button>
@@ -67,56 +76,65 @@
     </div>
 
     <div id="sc-done" class="screen">
-        <div class="success-circle">✓</div>
-        <div class="title">DATA SENT</div>
-        <div class="mono">AWAITING NEXT CYCLE</div>
+        <div style="font-size: 4rem;">✨</div>
+        <h2>VOTE SENT</h2>
+        <p>Stand by for next round</p>
     </div>
 
     <div id="sc-end" class="screen">
-        <div class="title" style="color: #888;">SESSION END</div>
-        <div class="mono">DISCONNECTING...</div>
+        <h2>SESSION CLOSED</h2>
+        <p>Thanks for playing</p>
     </div>
 
     <script>
         const params = new URLSearchParams(window.location.search);
         const ROOM_ID = params.get('room');
-        document.getElementById('room-disp').innerText = ROOM_ID || "ERR";
 
-        let client = null; let hasVoted = false;
+        // GENERAR UN ID ÚNICO PARA ESTE USUARIO (Para poder contarlo)
+        let userId = localStorage.getItem('nebula_uid');
+        if(!userId) {
+            userId = "user_" + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('nebula_uid', userId);
+        }
+
+        let client = null; 
+        let hasVoted = false;
 
         if (ROOM_ID) {
             client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
             
             client.on('connect', () => {
-                client.subscribe(`nx_sys/${ROOM_ID}/status`);
+                // 1. Suscribirse a cambios de fase
+                client.subscribe(`nb_sys/${ROOM_ID}/status`);
+                
+                // 2. ENVIAR SEÑAL DE "ME HE UNIDO"
+                // Enviamos nuestro ID único. El host contará IDs únicos.
+                client.publish(`nb_sys/${ROOM_ID}/join`, userId);
+
                 showScreen('sc-wait');
-                // Auto-join signal (optional)
-                client.publish(`nx_sys/${ROOM_ID}/vote`, 'JOIN');
             });
 
             client.on('message', (topic, msg) => {
                 const data = JSON.parse(msg.toString());
-                hasVoted = false; // Reset vote for new round
+                hasVoted = false;
                 handlePhase(data.phase);
             });
         } else {
-            alert("Connection Error. Please rescan QR.");
+            alert("Error: Re-scan QR Code");
         }
 
         function handlePhase(p) {
             if (p >= 5) {
                 showScreen('sc-end');
             } else {
-                // Texts are managed by Host now. Client just shows buttons.
+                // Actualizar textos de botones (Sincronizado simple)
+                const opts = [
+                    ["READING", "SCROLLING"],
+                    ["SALAD", "BURGER"],
+                    ["SLEEP 8H", "NETFLIX"],
+                    ["PRIVACY", "FAME"]
+                ];
                 if(p >= 1 && p <= 4) {
-                    // Update buttons text based on round (Simplified logic)
-                    const opts = [
-                        ["READING", "SCROLLING"],
-                        ["HEALTHY", "TASTY"],
-                        ["SLEEP", "NETFLIX"],
-                        ["PRIVACY", "FAME"]
-                    ];
-                    // Update button text locally for clarity
                     document.querySelector('.btn-a').innerText = opts[p-1][0];
                     document.querySelector('.btn-b').innerText = opts[p-1][1];
                     showScreen('sc-vote');
@@ -128,7 +146,7 @@
             if(hasVoted) return;
             if(navigator.vibrate) navigator.vibrate(50);
             
-            client.publish(`nx_sys/${ROOM_ID}/vote`, opt);
+            client.publish(`nb_sys/${ROOM_ID}/vote`, opt);
             hasVoted = true;
             showScreen('sc-done');
         }
