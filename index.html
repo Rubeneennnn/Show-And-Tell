@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>NEBULA HOST</title>
+    <title>DOPAMINE TEST</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;700;900&display=swap" rel="stylesheet">
@@ -101,7 +101,7 @@
     <div class="orb orb-2"></div>
 
     <section id="view-0" class="active">
-        <h1>NEBULA OS</h1>
+        <h1>DOPAMINE TEST</h1>
         <div class="sub-text">SYSTEM READY // WAITING FOR PLAYERS</div>
         
         <div class="glass-panel">
@@ -221,10 +221,10 @@
 
         function setupRound(r) {
             const data = [
-                { t: "ATTENTION", a: "READING", b: "SCROLLING" },
-                { t: "CHOICES", a: "SALAD", b: "BURGER" },
-                { t: "HABITS", a: "SLEEP 8H", b: "NETFLIX" },
-                { t: "VALUES", a: "PRIVACY", b: "FAME" }
+                { t: "WHAT DO YOU DO MOST?", a: "READING", b: "SCROLLING" },
+                { t: "WHAT DO YOU PREFER?", a: "SALAD", b: "BURGER" },
+                { t: "WHAT DO YOU DO MOST?", a: "SLEEP 8H", b: "NETFLIX" },
+                { t: "WHAT DO YOU PREFER", a: "PRIVACY", b: "FAME" }
             ];
             const d = data[r-1];
             document.getElementById('round-idx').innerText = "0" + r;
